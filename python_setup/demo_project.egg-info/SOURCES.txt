@@ -1,0 +1,12 @@
+README.md
+setup.py
+demo_project.egg-info/PKG-INFO
+demo_project.egg-info/SOURCES.txt
+demo_project.egg-info/dependency_links.txt
+demo_project.egg-info/top_level.txt
+moduleA/__init__.py
+moduleA/foo.py
+moduleA/data/datA.txt
+moduleA/data/datB.txt
+moduleA/lego/__init__.py
+moduleB/__init__.py

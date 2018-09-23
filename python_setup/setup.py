@@ -35,6 +35,8 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+print setuptools.find_packages()
+
 setuptools.setup(
     name="demo_project",
     version="0.0.1",
@@ -44,7 +46,9 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/guru4elephant/DL-arsenal.git",
-    packages=setuptools.find_packages(),
+    packages=['moduleA', 'moduleB', 'moduleA.lego'],
+    package_data={'moduleA': ['data/dat*.txt']},
+    package_dir={'moduleA.lego.x': '/home/dongdaxiang/github_develop/DL-arsenal/test_py'},
     classifiers=[
         "Programming Language :: Python :: 2.7",
         "License :: OSI Approved :: MIT License",
