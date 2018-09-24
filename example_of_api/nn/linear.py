@@ -33,6 +33,8 @@ class Linear(Module):
                                                    initializer=XavierInitializer(uniform=True,
                                                                                  fan_in=input_dim,
                                                                                  fan_out=output_dim))
+        self.memory.add_weight(self.weight)
+        abs(reduce(lambda x, y: x * y, self.weight.shape, 1))
         self.main_weight = main_block.create_parameter(name=self.w_name,
                                                        dtype='float32',
                                                        shape=[input_dim, output_dim])
@@ -42,10 +44,17 @@ class Linear(Module):
                                                      shape=[output_dim],
                                                      with_initializer=True,
                                                      initializer=ConstantInitializer(value=0.0))
+            self.memory.add_weight(self.bias)
             self.main_bias = main_block.create_parameter(name=self.b_name,
                                                          dtype='float32',
                                                          shape=[output_dim])
+
         self.call_count = 0
+
+    def __repr__(self):
+        main_str = self.__class__.__name__
+        main_str += "\tParameters: %s\t%s" % (str(self.weight), str(self.bias))
+        return main_str
         
     def forward(self, input):
         """ create op here"""
@@ -55,6 +64,7 @@ class Linear(Module):
         tmp_out_var = main_block.create_var(name=tmp_out_name,
                                             shape=[-1, self.output_dim],
                                             dtype='float32')
+        self.memory.add_var(tmp_out_var)
         mul_op_desc = main_block.desc.append_op()
         mul_op = Operator(block=main_block, 
                           desc=mul_op_desc, 
@@ -71,6 +81,7 @@ class Linear(Module):
             final_out_var = main_block.create_var(name=final_out_name,
                                                   shape=[-1, self.output_dim],
                                                   dtype='float32')
+            self.memory.add_var(final_out_var)
             add_op_desc = main_block.desc.append_op()
             add_op = Operator(block=main_block,
                               desc=add_op_desc,

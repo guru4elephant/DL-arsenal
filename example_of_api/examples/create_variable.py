@@ -16,7 +16,4 @@ print("lod level")
 print(new_variable.lod_level)
 print("is persistable")
 print(new_variable.persistable)
-print("capacity")
-print(new_variable.capacity)
-
 

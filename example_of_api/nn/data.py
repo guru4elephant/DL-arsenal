@@ -15,13 +15,15 @@ class ImageData(Module):
                                            stop_gradient=True,
                                            lod_level=0,
                                            is_data=True)
+        self.memory.add_var(self.image)
         self.label = main_block.create_var(name=self.label_name,
                                            shape=[-1, 1],
-                                           dtype='float32',
+                                           dtype='int64',
                                            stop_gradient=True,
                                            lod_level=0,
                                            is_data=True)
-        
+        self.memory.add_var(self.label)
+
     def forward(self):
         return self.image, self.label
         
