@@ -15,9 +15,13 @@ class Memory(object):
         pass
 
 class GlobalMemory(Memory):
-    def __init__(self):
-        self.main_program = fluid.Program()
-        self.startup_program = fluid.Program()
+    def __init__(self, startup_program=None, main_program=None):
+        if startup_program == None or main_program == None:
+            self.main_program = fluid.Program()
+            self.startup_program = fluid.Program()
+        else:
+            self.main_program = main_program
+            self.startup_program = startup_program
         self.weight_param_num = 0
         self.var_param_num = 0
 

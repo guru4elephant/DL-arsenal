@@ -34,7 +34,6 @@ class Linear(Module):
                                                                                  fan_in=input_dim,
                                                                                  fan_out=output_dim))
         self.memory.add_weight(self.weight)
-        abs(reduce(lambda x, y: x * y, self.weight.shape, 1))
         self.main_weight = main_block.create_parameter(name=self.w_name,
                                                        dtype='float32',
                                                        shape=[input_dim, output_dim])
@@ -48,7 +47,6 @@ class Linear(Module):
             self.main_bias = main_block.create_parameter(name=self.b_name,
                                                          dtype='float32',
                                                          shape=[output_dim])
-
         self.call_count = 0
 
     def __repr__(self):

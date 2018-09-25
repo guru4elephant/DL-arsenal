@@ -9,8 +9,12 @@ class ImageData(Module):
         self.memory = memory
         start_block = memory.startup_program.global_block()
         main_block = memory.main_program.current_block()
+        if isinstance(dim, list):
+            shape = [-1] + dim
+        else:
+            shape = [dim]
         self.image = main_block.create_var(name=self.image_name,
-                                           shape=[-1, dim],
+                                           shape=shape,
                                            dtype='float32',
                                            stop_gradient=True,
                                            lod_level=0,
