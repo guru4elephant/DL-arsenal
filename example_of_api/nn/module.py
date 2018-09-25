@@ -14,6 +14,5 @@ class Module(object):
         raise NotImplementedError
     
     def __call__(self, *input, **kwargs):
-        print "calling ", self.__class__.__name__
         result = self.forward(*input, **kwargs)
         return result

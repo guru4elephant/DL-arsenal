@@ -30,18 +30,20 @@ class BottleneckBlock(Module):
         self.conv1 = ConvBnNet(memory, "%s_conv1" % basename, out_channel, out_channel, 3, stride=stride, act='relu')
         self.conv2 = ConvBnNet(memory, "%s_conv2" % basename, out_channel, out_channel * 4, 1, stride=1, act='relu')
         if stride != 1 or in_channel != out_channel * 4:
-            self.conv3 = ConvBnNet(memory, "%s_conv3" % basename, out_channel * 4, out_channel, 1, stride)
+            self.conv3 = ConvBnNet(memory, "%s_conv3" % basename, in_channel, out_channel * 4, 1, stride)
+        self.final_out_channel = out_channel * 4
         self.add = ElemAdd(memory, "%s_shortcut" % basename)
+
 
     def forward(self, input):
         conv0 = self.conv0(input)
         conv1 = self.conv1(conv0)
         conv2 = self.conv2(conv1)
         if self.stride != 1 or self.in_channel != self.out_channel * 4:
-            conv3 = self.conv3(conv2)
-            result = self.add(conv3)
+            conv3 = self.conv3(input)
+            result = self.add(conv3, conv2)
             return result
-        return self.add(conv2)
+        return self.add(input, conv2)
 
 
 class ConvBnNet(Module):
@@ -49,7 +51,8 @@ class ConvBnNet(Module):
                  kernel_size, stride, padding=1, dilation=1,
                  groups=1, act='relu'):
         super(ConvBnNet, self).__init__()
-        padding = (out_channel - 1) // 2
+        self.memory = memory
+        padding = (kernel_size - 1) // 2
         self.act = act
         self.conv = Conv2d(memory, "%s_conv" % basename,
                            in_channel, out_channel,
@@ -77,16 +80,18 @@ conv1 = ConvBnNet(memory, "first_conv_bn", 3, channels[0],
 relu1 = Relu(memory, "first_relu")
 pool1 = Pool2d(memory, "first_pool")
 
+last = 64
 bottleneck_list = []
 for block in range(len(depth)):
     for i in range(depth[block]):
         stride = 2 if i == 0 and block != 0 else 1
         bottle = BottleneckBlock(memory, "bottleneck_%d_%d" % (block, i), 
-                                 channels[block], channels[block+1], stride=stride)
+                                 last, channels[block+1], stride=stride)
+        last = bottle.final_out_channel
         bottleneck_list.append(bottle)
 
 pool2 = Pool2d(memory, "second_pool")
-fc1 = Linear(memory, "fc1", 12300, 1000)
+fc1 = Linear(memory, "fc1", 2048, 1000)
 softmax = Softmax(memory, "softmax1")
 cross_entropy = CrossEntropy(memory, "entropy1")
 mean = Mean(memory, "mean")
@@ -96,16 +101,27 @@ with memory.hold():
     conv1_out = conv1(image)
     relu1_out = relu1(conv1_out)
     pool1_out = pool1(relu1_out, pool_size=3, pool_stride=2, pool_padding=1)
+    #print("checkpoint2", pool1_out.shape)
     bottle_out_list = [pool1_out]
+    bottle_idx = 0
+    checkpoint_idx = 3
     for block in range(len(depth)):
         for i in range(depth[block]):
             stride = 2 if i == 0 and block != 0 else 1
-            bottle_out = bottle(bottle_out_list[-1])
+            bottle_out = bottleneck_list[bottle_idx](bottle_out_list[-1])
+            #print("checkpoint%d " % checkpoint_idx, bottle_out.shape)
+            checkpoint_idx += 1
             bottle_out_list.append(bottle_out)
+            bottle_idx += 1
     pool2_out = pool2(bottle_out_list[-1], pool_size=7, 
                       pool_type='avg', global_pooling=True)
+    #print("checkpoint%d " % checkpoint_idx, pool2_out.shape)
+    checkpoint_idx += 1
     fc1_out = fc1(pool2_out)
+    #print("checkpoint%d " % checkpoint_idx, pool2_out.shape)
     softmax_out = softmax(fc1_out)
-    cross_entropy_out = cross_entropy(softmax_out)
+    cross_entropy_out = cross_entropy(softmax_out, label)
     mean_out = mean(cross_entropy_out)
+    adagrad_opt = fluid.optimizer.Adagrad(learning_rate=0.1)
+    adagrad_opt.minimize(mean_out, startup_program=memory.startup_program)
     print(str(memory.main_program))

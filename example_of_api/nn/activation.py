@@ -8,7 +8,6 @@ class Relu(Module):
         self.call_count = 0
 
     def forward(self, input):
-        print input.shape
         main_block = self.memory.main_program.current_block()
         out_name = "%s_%d_out" % (self.base_name, self.call_count)
         out_var = main_block.create_var(name=out_name,

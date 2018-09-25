@@ -20,6 +20,7 @@ class ElemAdd(Module):
                                   inputs={'X': [input1],
                                           'Y': [input2]},
                                   outputs={'Out': [out_var]})
+        main_block.ops.append(element_add_op)
         return out_var
 
 
@@ -56,7 +57,22 @@ class BatchNorm(Module):
                                                      do_model_average=False,
                                                      shape=[channel],
                                                      dtype='float32')
-        self.variance.stop_gradient = True
+        self.main_scale = main_block.create_parameter(name=self.scale_name,
+                                                 shape=[channel],
+                                                 dtype='float32')
+        self.main_bias = main_block.create_parameter(name=self.bias_name,
+                                                shape=[channel],
+                                                dtype='float32')
+        self.main_mean = main_block.create_parameter(name=self.mean_name,
+                                                do_model_average=False,
+                                                shape=[channel],
+                                                dtype='float32')
+        self.main_mean.stop_gradient = True
+        self.main_variance = main_block.create_parameter(name=self.var_name,
+                                                    do_model_average=False,
+                                                    shape=[channel],
+                                                    dtype='float32')
+        self.main_variance.stop_gradient = True
         self.memory.add_weight(self.variance)
         self.memory.add_weight(self.mean)
         self.memory.add_weight(self.scale)
@@ -79,10 +95,10 @@ class BatchNorm(Module):
                                  type="batch_norm",
                                  inputs={
                                      "X": input,
-                                     "Scale": self.scale,
-                                     "Bias": self.bias,
-                                     "Mean": self.mean,
-                                     "Variance": self.variance
+                                     "Scale": self.main_scale,
+                                     "Bias": self.main_bias,
+                                     "Mean": self.main_mean,
+                                     "Variance": self.main_variance
                                  },
                                  outputs={
                                      "Y": batch_norm_out,

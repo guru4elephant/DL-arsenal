@@ -4,6 +4,9 @@ from paddle.fluid.initializer import ConstantInitializer
 from module import Module
 from .util import _single, _pair, _triple, _quadruple
 
+def volumn(var):
+    return abs(reduce(lambda x, y: x * y, var.shape, 1))
+
 class Conv2d(Module):
     r""" convolution 2d """
     def __init__(self, memory, base_name,
@@ -61,9 +64,6 @@ class Conv2d(Module):
                 input, 
                 use_cudnn=True,
                 use_mkldnn=True):
-        print "conv2d forward"
-        print input.shape
-        print "conv2d forward done."
         main_block = self.memory.main_program.current_block()
         conv_op_desc = main_block.desc.append_op()
         conv_out = main_block.create_var(name="%s_out" % self.base_name,
@@ -80,6 +80,7 @@ class Conv2d(Module):
                                   'groups': self.groups,
                                   'use_cudnn': use_cudnn,
                                   'use_mkldnn': use_mkldnn})
+        main_block.ops.append(conv_op)
         if self.bias:
             # add bias
             final_out_name = "%s_%d_out" % (self.base_name, 
@@ -97,6 +98,7 @@ class Conv2d(Module):
                               attrs={'axis': 1})
             main_block.ops.append(add_op)
             self.memory.add_var(final_out_var)
+            print("%d %d" % (volumn(conv_out), volumn(final_out_var)))
             return final_out_var
         self.call_count += 1
         return conv_out

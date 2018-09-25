@@ -20,7 +20,6 @@ class Pool2d(Module):
                 ceil_mode=False,
                 use_mkldnn=False,
                 global_pooling=False):
-        print input.shape
         if pool_type not in ["max", "avg"]:
             raise ValueError(
                 "Unknown pool_type: '%s'. It can only be 'max' or 'avg'.",
