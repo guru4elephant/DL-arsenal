@@ -14,8 +14,34 @@ from nn.activation import Relu
 from nn.data import ImageData
 from nn.memory import GlobalMemory
 from nn.module import Module
+from nn.util import volumn, find_var_by_name
 import numpy as np
+from paddle.fluid import debugger
 
+batch_size = 128
+
+def rewrite_ops(ops, pool_vars, checkpoints):
+    pool_idx = 0
+    local_dict = {}
+    print "current checkpoints are"
+    print checkpoints
+    for op in ops:
+        for i, name in enumerate(op.input_arg_names):
+            if name not in checkpoints:
+                if name in local_dict:
+                    #op.input_arg_names[i] = local_dict[name]
+                    op.rename_input(op.input_arg_names[i], local_dict[name])
+                else:
+                    #op.input_arg_names[i] = pool_vars[pool_idx]
+                    op.rename_input(op.input_arg_names[i], pool_vars[pool_idx])
+                    local_dict[name] = pool_vars[pool_idx]
+                    pool_idx += 1
+        for i, name in enumerate(op.output_arg_names):
+            if name not in checkpoints:
+                if name in local_dict:
+                    op.rename_input(op.output_arg_names[i], pool_vars[pool_idx])
+                    local_dict[name] = pool_vars[pool_idx]
+                    pool_idx += 1
 
 class BottleneckBlock(Module):
     def __init__(self, memory, basename,
@@ -96,12 +122,16 @@ softmax = Softmax(memory, "softmax1")
 cross_entropy = CrossEntropy(memory, "entropy1")
 mean = Mean(memory, "mean")
 
+partitions = []
+
+pool_vars = [str(i) + "_rep_var" for i in range(100)]
+
 with memory.hold():
     image, label = data()
     conv1_out = conv1(image)
     relu1_out = relu1(conv1_out)
     pool1_out = pool1(relu1_out, pool_size=3, pool_stride=2, pool_padding=1)
-    #print("checkpoint2", pool1_out.shape)
+    checkpoint_vars = [pool1_out.name, "%s@GRAD" % pool1_out.name]
     bottle_out_list = [pool1_out]
     bottle_idx = 0
     checkpoint_idx = 3
@@ -113,6 +143,8 @@ with memory.hold():
             checkpoint_idx += 1
             bottle_out_list.append(bottle_out)
             bottle_idx += 1
+            checkpoint_vars.append(bottle_out.name)
+            checkpoint_vars.append("%s@GRAD" % bottle_out.name)
     pool2_out = pool2(bottle_out_list[-1], pool_size=7, 
                       pool_type='avg', global_pooling=True)
     #print("checkpoint%d " % checkpoint_idx, pool2_out.shape)
@@ -122,6 +154,55 @@ with memory.hold():
     softmax_out = softmax(fc1_out)
     cross_entropy_out = cross_entropy(softmax_out, label)
     mean_out = mean(cross_entropy_out)
-    adagrad_opt = fluid.optimizer.Adagrad(learning_rate=0.1)
-    adagrad_opt.minimize(mean_out, startup_program=memory.startup_program)
-    print(str(memory.main_program))
+    checkpoint_vars.append(mean_out.name)
+    checkpoint_vars.append("%s@GRAD" % mean_out.name)
+    main_block = memory.main_program.current_block()
+    print "checkpoints"
+    print " ".join(checkpoint_vars)
+    print "----------------------------------------------"
+    checkpoints_width = 0
+    sgd_opt = fluid.optimizer.SGDOptimizer(learning_rate=0.1)
+    opt_ops, weight_and_grad = sgd_opt.minimize(mean_out, startup_program=memory.startup_program)
+    total_mem = 0
+    name_dict = {}
+
+    forward_index = 0
+    backward_index = 0
+
+    sgd_ops = []
+    forward_partitions = []
+    backward_partitions = []
+    forward_partition_vars = []
+    backward_partition_vars = []
+    fp = []
+    bp = []
+    for op in memory.main_program.current_block().ops:
+        if op in opt_ops:
+            sgd_ops.append(op)
+            continue
+        is_backward = False
+        for name in op.output_arg_names:
+            if "@GRAD" in name:
+                is_backward = True
+            if "_grad" in name:
+                is_backward = True
+        is_partition = False
+        for name in op.output_arg_names:
+            if name in checkpoint_vars:
+                is_partition = True
+                break
+        if is_backward:
+            bp.append(op)
+            if is_partition:
+                backward_partitions.append(bp)
+                bp = []
+        else:
+            fp.append(op)
+            if is_partition:
+                forward_partitions.append(fp)
+                fp = []
+    for part in forward_partitions:
+        rewrite_ops(part, pool_vars, checkpoint_vars)
+    for part in forward_partitions:
+        for op in part:
+            print(str(op))

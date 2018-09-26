@@ -2,10 +2,7 @@ from paddle.fluid import Operator
 from paddle.fluid.initializer import Normal
 from paddle.fluid.initializer import ConstantInitializer
 from module import Module
-from .util import _single, _pair, _triple, _quadruple
-
-def volumn(var):
-    return abs(reduce(lambda x, y: x * y, var.shape, 1))
+from .util import _single, _pair, _triple, _quadruple, volumn
 
 class Conv2d(Module):
     r""" convolution 2d """
@@ -98,7 +95,6 @@ class Conv2d(Module):
                               attrs={'axis': 1})
             main_block.ops.append(add_op)
             self.memory.add_var(final_out_var)
-            print("%d %d" % (volumn(conv_out), volumn(final_out_var)))
             return final_out_var
         self.call_count += 1
         return conv_out
