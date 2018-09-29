@@ -88,7 +88,7 @@ class BatchNorm(Module):
         variance_out = self.variance
         saved_mean = main_block.create_var(name="%s_mean_out" % self.base_name,
                                            dtype='float32')
-        saved_variance = main_block.create_var(name="%s_mean_out" % self.base_name,
+        saved_variance = main_block.create_var(name="%s_var_out" % self.base_name,
                                                dtype='float32')
         batch_norm_op = Operator(block=main_block,
                                  desc=batch_norm_op_desc,

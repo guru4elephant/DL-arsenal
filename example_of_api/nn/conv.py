@@ -8,7 +8,7 @@ class Conv2d(Module):
     r""" convolution 2d """
     def __init__(self, memory, base_name,
                  in_channels, out_channels, kernel_size, stride=1,
-                 padding=0, dilation=1, groups=1, bias=True):
+                 padding=0, dilation=1, groups=1, bias=False):
         super(Conv2d, self).__init__()
         self.memory = memory
         self.base_name = base_name
@@ -19,6 +19,7 @@ class Conv2d(Module):
         self.padding = padding
         self.dilation = dilation
         self.groups = groups
+        self.bias = bias
         start_block = memory.startup_program.global_block()
         main_block = memory.main_program.current_block()
         conv_name = "%s_w" % self.base_name

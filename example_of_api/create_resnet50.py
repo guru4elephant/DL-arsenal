@@ -20,28 +20,59 @@ from paddle.fluid import debugger
 
 batch_size = 128
 
-def rewrite_ops(ops, pool_vars, checkpoints):
+def print_var_by_id(id):
+    print "  vars {"
+    print "    name: %d_rep_var" % id
+    print "    type {"
+    print "      type: LOD_TENSOR"
+    print "      lod_tensor {"
+    print "        tensor {"
+    print "          data_type: FP32"
+    print "          dims: 256"
+    print "        }"
+    print "      }"
+    print "    }"
+    print "  }"    
+
+def print_op(op):
+    print "  ops {"
+    lines = str(op).split("\n")
+    for line in lines:
+        print "    " + line
+    print "  }"
+
+def print_var(var):
+    print "  vars {"
+    lines = str(var).split("\n")
+    for line in lines:
+        print "    " + line
+    print "  }"
+
+renamed_var_dict = {}
+
+def rewrite_ops(ops, pool_vars, checkpoints, weight_dict):
     pool_idx = 0
     local_dict = {}
-    print "current checkpoints are"
-    print checkpoints
     for op in ops:
         for i, name in enumerate(op.input_arg_names):
-            if name not in checkpoints:
+            if name not in checkpoints and name not in weight_dict:
                 if name in local_dict:
-                    #op.input_arg_names[i] = local_dict[name]
                     op.rename_input(op.input_arg_names[i], local_dict[name])
                 else:
-                    #op.input_arg_names[i] = pool_vars[pool_idx]
+                    renamed_var_dict[name] = 1
                     op.rename_input(op.input_arg_names[i], pool_vars[pool_idx])
                     local_dict[name] = pool_vars[pool_idx]
                     pool_idx += 1
         for i, name in enumerate(op.output_arg_names):
-            if name not in checkpoints:
+            if name not in checkpoints and name not in weight_dict:
                 if name in local_dict:
-                    op.rename_input(op.output_arg_names[i], pool_vars[pool_idx])
+                    op.rename_output(op.output_arg_names[i], local_dict[name])
+                else:
+                    renamed_var_dict[name] = 1
+                    op.rename_output(op.output_arg_names[i], pool_vars[pool_idx])
                     local_dict[name] = pool_vars[pool_idx]
                     pool_idx += 1
+    return pool_idx
 
 class BottleneckBlock(Module):
     def __init__(self, memory, basename,
@@ -97,6 +128,10 @@ class ConvBnNet(Module):
 
 
 memory = GlobalMemory()
+
+forward_memory = GlobalMemory()
+backward_memory = GlobalMemory()
+
 data = ImageData(memory, "data", [3, 224, 224])
 
 depth = [3, 4, 6, 3]
@@ -126,6 +161,8 @@ partitions = []
 
 pool_vars = [str(i) + "_rep_var" for i in range(100)]
 
+weight_dict = {}
+
 with memory.hold():
     image, label = data()
     conv1_out = conv1(image)
@@ -139,7 +176,6 @@ with memory.hold():
         for i in range(depth[block]):
             stride = 2 if i == 0 and block != 0 else 1
             bottle_out = bottleneck_list[bottle_idx](bottle_out_list[-1])
-            #print("checkpoint%d " % checkpoint_idx, bottle_out.shape)
             checkpoint_idx += 1
             bottle_out_list.append(bottle_out)
             bottle_idx += 1
@@ -147,45 +183,108 @@ with memory.hold():
             checkpoint_vars.append("%s@GRAD" % bottle_out.name)
     pool2_out = pool2(bottle_out_list[-1], pool_size=7, 
                       pool_type='avg', global_pooling=True)
-    #print("checkpoint%d " % checkpoint_idx, pool2_out.shape)
     checkpoint_idx += 1
     fc1_out = fc1(pool2_out)
-    #print("checkpoint%d " % checkpoint_idx, pool2_out.shape)
     softmax_out = softmax(fc1_out)
     cross_entropy_out = cross_entropy(softmax_out, label)
     mean_out = mean(cross_entropy_out)
     checkpoint_vars.append(mean_out.name)
     checkpoint_vars.append("%s@GRAD" % mean_out.name)
     main_block = memory.main_program.current_block()
-    print "checkpoints"
-    print " ".join(checkpoint_vars)
-    print "----------------------------------------------"
     checkpoints_width = 0
     sgd_opt = fluid.optimizer.SGDOptimizer(learning_rate=0.1)
     opt_ops, weight_and_grad = sgd_opt.minimize(mean_out, startup_program=memory.startup_program)
-    total_mem = 0
-    name_dict = {}
+    for x in weight_and_grad:
+        weight_dict[x[0].name] = 1
+    print(str(memory.main_program))
+    sys.exit(-1)
 
-    forward_index = 0
-    backward_index = 0
 
-    sgd_ops = []
-    forward_partitions = []
-    backward_partitions = []
-    forward_partition_vars = []
-    backward_partition_vars = []
+opt_type = {}
+for op in memory.main_program.current_block().ops:
+    if op.type in opt_type:
+        opt_type[op.type] = 1
+
+forward_memory.startup_program = memory.startup_program.clone()
+forward_memory.main_program = memory.main_program.clone()
+backward_memory.startup_program = memory.startup_program.clone()
+backward_memory.main_program = memory.main_program.clone()
+max_var_num = 0
+
+final_forward_partitions = []
+with forward_memory.hold():
     fp = []
     bp = []
-    for op in memory.main_program.current_block().ops:
-        if op in opt_ops:
+    forward_partitions = []
+    backward_partitions = []
+    for i, op in enumerate(forward_memory.main_program.current_block().ops):
+        if op.type in opt_type:
+            continue
+        is_backward = False
+        for name in op.output_arg_names:
+            if "@GRAD" in name:
+                is_backward = True
+        for name in op.input_arg_names:
+            if "@GRAD" in name:
+                is_backward = True
+        if "_grad" in op.type:
+            is_backward = True
+        is_partition = False
+        for name in op.output_arg_names:
+            if name in checkpoint_vars:
+                is_partition = True
+                break
+        if is_backward:
+            continue
+        else:
+            fp.append(op)
+            if is_partition:
+                final_forward_partitions.append(fp)
+                fp = []
+
+
+with backward_memory.hold():
+    forward_partitions = []
+    backward_partitions = []
+    fp = []
+    bp = []
+    
+    for i, op in enumerate(backward_memory.main_program.current_block().ops):
+        if op.type in opt_type:
             sgd_ops.append(op)
             continue
         is_backward = False
         for name in op.output_arg_names:
             if "@GRAD" in name:
                 is_backward = True
-            if "_grad" in name:
+        if "_grad" in op.type:
+            is_backward = True
+        is_partition = False
+        for name in op.output_arg_names:
+            if name in checkpoint_vars:
+                is_partition = True
+                break
+        if is_backward:
+            continue
+        else:
+            fp.append(op)
+            if is_partition:
+                forward_partitions.append(fp)
+                fp = []
+                
+    ff_partition_idx = len(forward_partitions) - 1
+    fp = []
+    bp = []
+    
+    for op in backward_memory.main_program.current_block().ops:
+        if op in opt_ops:
+            continue
+        is_backward = False
+        for name in op.output_arg_names:
+            if "@GRAD" in name:
                 is_backward = True
+        if "_grad" in op.type:
+            is_backward = True
         is_partition = False
         for name in op.output_arg_names:
             if name in checkpoint_vars:
@@ -195,14 +294,43 @@ with memory.hold():
             bp.append(op)
             if is_partition:
                 backward_partitions.append(bp)
-                bp = []
-        else:
-            fp.append(op)
-            if is_partition:
-                forward_partitions.append(fp)
-                fp = []
-    for part in forward_partitions:
-        rewrite_ops(part, pool_vars, checkpoint_vars)
-    for part in forward_partitions:
+                ff_partition_idx -= 1
+                bp = forward_partitions[ff_partition_idx]
+                
+    for part in backward_partitions:
+        var_num = rewrite_ops(part, pool_vars, checkpoint_vars, weight_dict)
+        if var_num > max_var_num:
+            max_var_num = var_num
+
+print "blocks {"
+print "  idx: 0"
+print "  parent_idx: -1"
+with memory.hold():
+    name_keys = memory.main_program.current_block().vars.keys()
+    vars = memory.main_program.current_block().vars
+    for name in name_keys:
+        if name not in renamed_var_dict:
+            print_var(vars[name])
+    for i in range(max_var_num):
+        print_var_by_id(i)
+        
+with forward_memory.hold():
+    for part in final_forward_partitions:
+        var_num = rewrite_ops(part, pool_vars, checkpoint_vars, weight_dict)
+        if var_num > max_var_num:
+            max_var_num = var_num
         for op in part:
-            print(str(op))
+            print_op(op)
+
+with backward_memory.hold():
+    for part in backward_partitions:
+        var_num = rewrite_ops(part, pool_vars, checkpoint_vars, weight_dict)
+        if var_num > max_var_num:
+            max_var_num = var_num
+        for op in part:
+            print_op(op)
+
+for op in opt_ops:
+    print_op(op)
+
+print "}"
