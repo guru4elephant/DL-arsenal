@@ -1,0 +1,410 @@
+vfork_exe_python.cpp: In function 'void read_file(int)':
+vfork_exe_python.cpp:14:36: error: invalid conversion from 'int' to 'const char*' [-fpermissive]
+   std::string path = std::string(id) + ".txt";
+                                    ^
+In file included from /home/opt/gcc-4.8.2.bpkg-r4/gcc-4.8.2.bpkg-r4/include/c++/4.8.2/string:52:0,
+                 from /home/opt/gcc-4.8.2.bpkg-r4/gcc-4.8.2.bpkg-r4/include/c++/4.8.2/stdexcept:39,
+                 from /home/opt/gcc-4.8.2.bpkg-r4/gcc-4.8.2.bpkg-r4/include/c++/4.8.2/array:38,
+                 from /home/opt/gcc-4.8.2.bpkg-r4/gcc-4.8.2.bpkg-r4/include/c++/4.8.2/tuple:39,
+                 from /home/opt/gcc-4.8.2.bpkg-r4/gcc-4.8.2.bpkg-r4/include/c++/4.8.2/functional:55,
+                 from /home/opt/gcc-4.8.2.bpkg-r4/gcc-4.8.2.bpkg-r4/include/c++/4.8.2/thread:39,
+                 from vfork_exe_python.cpp:4:
+/home/opt/gcc-4.8.2.bpkg-r4/gcc-4.8.2.bpkg-r4/include/c++/4.8.2/bits/basic_string.h:490:7: error:   initializing argument 1 of 'std::basic_string<_CharT, _Traits, _Alloc>::basic_string(const _CharT*, const _Alloc&) [with _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]' [-fpermissive]
+       basic_string(const _CharT* __s, const _Alloc& __a = _Alloc());
+       ^
+vfork_exe_python.cpp:15:58: error: 'fs_open_read' was not declared in this scope
+   fs_open_read(path, &err_no, "python print_with_tail.py");
+                                                          ^
+vfork_exe_python.cpp:15:58: note: suggested alternative:
+In file included from vfork_exe_python.cpp:7:0:
+fs.h:61:30: note:   'paddle::ps::fs_open_read'
+ extern std::shared_ptr<FILE> fs_open_read(const std::string& path, int* err_no,
+                              ^
+In file included from fs.cc:1:0:
+fs.h:27:8: error: 'vector' in namespace 'std' does not name a type
+ extern std::vector<std::string> localfs_list(const std::string& path);
+        ^
+fs.h:52:8: error: 'vector' in namespace 'std' does not name a type
+ extern std::vector<std::string> hdfs_list(const std::string& path);
+        ^
+fs.h:74:8: error: 'vector' in namespace 'std' does not name a type
+ extern std::vector<std::string> fs_list(const std::string& path);
+        ^
+fs.cc: In function 'void fs_add_read_converter_internal(std::string&, bool&, const string&)':
+fs.cc:11:80: error: 'format_string' was not declared in this scope
+         path = format_string("( %s ) < \"%s\"", converter.c_str(), path.c_str());
+                                                                                ^
+fs.cc:14:72: error: 'format_string' was not declared in this scope
+         path = format_string("%s | %s", path.c_str(), converter.c_str());
+                                                                        ^
+fs.cc: In function 'void fs_add_write_converter_internal(std::string&, bool&, const string&)':
+fs.cc:25:80: error: 'format_string' was not declared in this scope
+         path = format_string("( %s ) > \"%s\"", converter.c_str(), path.c_str());
+                                                                                ^
+fs.cc:28:72: error: 'format_string' was not declared in this scope
+         path = format_string("%s | %s", converter.c_str(), path.c_str());
+                                                                        ^
+fs.cc: In function 'std::shared_ptr<_IO_FILE> fs_open_internal(const string&, bool, const string&, size_t, int*)':
+fs.cc:37:36: error: 'shell_fopen' was not declared in this scope
+         fp = shell_fopen(path, mode);
+                                    ^
+fs.cc:37:36: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:29:30: note:   'paddle::ps::shell_fopen'
+ extern std::shared_ptr<FILE> shell_fopen(const std::string& path, const std::string& mode);
+                              ^
+fs.cc:39:44: error: 'shell_popen' was not declared in this scope
+         fp = shell_popen(path, mode, err_no);
+                                            ^
+fs.cc:39:44: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:31:30: note:   'paddle::ps::shell_popen'
+ extern std::shared_ptr<FILE> shell_popen(const std::string& cmd, const std::string& mode, int* err_no);
+                              ^
+fs.cc:44:62: error: 'CHECK' was not declared in this scope
+         CHECK(0 == setvbuf(&*fp, buffer, _IOFBF, buffer_size));
+                                                              ^
+fs.cc: In lambda function:
+fs.cc:46:17: error: 'CHECK' is not captured
+                 CHECK(fp.unique());
+                 ^
+fs.cc: In function 'bool fs_begin_with_internal(const string&, const string&)':
+fs.cc:57:59: error: 'strncmp' was not declared in this scope
+     return strncmp(path.c_str(), str.c_str(), str.length()) == 0;
+                                                           ^
+fs.cc: In function 'bool fs_end_with_internal(const string&, const string&)':
+fs.cc:62:85: error: 'strncmp' was not declared in this scope
+            && strncmp(&path[path.length() - str.length()], str.c_str(), str.length()) == 0;
+                                                                                     ^
+fs.cc: In function 'std::shared_ptr<_IO_FILE> localfs_open_write(std::string, const string&)':
+fs.cc:90:75: error: 'format_string' was not declared in this scope
+     shell_execute(format_string("mkdir -p $(dirname \"%s\")", path.c_str()));
+                                                                           ^
+fs.cc:90:76: error: 'shell_execute' was not declared in this scope
+     shell_execute(format_string("mkdir -p $(dirname \"%s\")", path.c_str()));
+                                                                            ^
+fs.cc:90:76: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:35:13: note:   'paddle::ps::shell_execute'
+ inline void shell_execute(const std::string& cmd) {
+             ^
+fs.cc: In function 'int64_t localfs_file_size(const string&)':
+fs.cc:105:13: error: 'FATAL' was not declared in this scope
+         LOG(FATAL) << "file stat not zero";
+             ^
+fs.cc:105:18: error: 'LOG' was not declared in this scope
+         LOG(FATAL) << "file stat not zero";
+                  ^
+fs.cc: In function 'void localfs_remove(const string&)':
+fs.cc:116:58: error: 'format_string' was not declared in this scope
+     shell_execute(format_string("rm -rf %s", path.c_str()));
+                                                          ^
+fs.cc:116:59: error: 'shell_execute' was not declared in this scope
+     shell_execute(format_string("rm -rf %s", path.c_str()));
+                                                           ^
+fs.cc:116:59: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:35:13: note:   'paddle::ps::shell_execute'
+ inline void shell_execute(const std::string& cmd) {
+             ^
+fs.cc: At global scope:
+fs.cc:119:1: error: 'vector' in namespace 'std' does not name a type
+ std::vector<std::string> localfs_list(const std::string& path) {
+ ^
+fs.cc: In function 'std::string localfs_tail(const string&)':
+fs.cc:142:78: error: 'format_string' was not declared in this scope
+     return shell_get_command_output(format_string("tail -1 %s ", path.c_str()));
+                                                                              ^
+fs.cc:142:79: error: 'shell_get_command_output' was not declared in this scope
+     return shell_get_command_output(format_string("tail -1 %s ", path.c_str()));
+                                                                               ^
+fs.cc:142:79: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:43:20: note:   'paddle::ps::shell_get_command_output'
+ extern std::string shell_get_command_output(const std::string& cmd);
+                    ^
+fs.cc: In function 'bool localfs_exists(const string&)':
+fs.cc:146:100: error: 'format_string' was not declared in this scope
+     std::string test_f = shell_get_command_output(format_string("[ -f %s ] ; echo $?", path.c_str()));
+                                                                                                    ^
+fs.cc:146:101: error: 'shell_get_command_output' was not declared in this scope
+     std::string test_f = shell_get_command_output(format_string("[ -f %s ] ; echo $?", path.c_str()));
+                                                                                                     ^
+fs.cc:146:101: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:43:20: note:   'paddle::ps::shell_get_command_output'
+ extern std::string shell_get_command_output(const std::string& cmd);
+                    ^
+fs.cc:148:27: error: 'trim_spaces' was not declared in this scope
+     if (trim_spaces(test_f) == "0") {
+                           ^
+fs.cc:154:27: error: 'trim_spaces' was not declared in this scope
+     if (trim_spaces(test_d) == "0") {
+                           ^
+fs.cc: In function 'void localfs_mkdir(const string&)':
+fs.cc:166:60: error: 'format_string' was not declared in this scope
+     shell_execute(format_string("mkdir -p %s", path.c_str()));
+                                                            ^
+fs.cc:166:61: error: 'shell_execute' was not declared in this scope
+     shell_execute(format_string("mkdir -p %s", path.c_str()));
+                                                             ^
+fs.cc:166:61: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:35:13: note:   'paddle::ps::shell_execute'
+ inline void shell_execute(const std::string& cmd) {
+             ^
+fs.cc: In function 'std::shared_ptr<_IO_FILE> hdfs_open_read(std::string, int*, const string&)':
+fs.cc:198:85: error: 'format_string' was not declared in this scope
+         path = format_string("%s -text \"%s\"", hdfs_command().c_str(), path.c_str());
+                                                                                     ^
+fs.cc:200:84: error: 'format_string' was not declared in this scope
+         path = format_string("%s -cat \"%s\"", hdfs_command().c_str(), path.c_str());
+                                                                                    ^
+fs.cc: In function 'std::shared_ptr<_IO_FILE> hdfs_open_write(std::string, int*, const string&)':
+fs.cc:210:82: error: 'format_string' was not declared in this scope
+     path = format_string("%s -put - \"%s\"", hdfs_command().c_str(), path.c_str());
+                                                                                  ^
+fs.cc: In function 'void hdfs_remove(const string&)':
+fs.cc:226:101: error: 'format_string' was not declared in this scope
+     shell_execute(format_string("%s -rmr %s &>/dev/null; true", hdfs_command().c_str(), path.c_str()));
+                                                                                                     ^
+fs.cc:226:102: error: 'shell_execute' was not declared in this scope
+     shell_execute(format_string("%s -rmr %s &>/dev/null; true", hdfs_command().c_str(), path.c_str()));
+                                                                                                      ^
+fs.cc:226:102: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:35:13: note:   'paddle::ps::shell_execute'
+ inline void shell_execute(const std::string& cmd) {
+             ^
+fs.cc: At global scope:
+fs.cc:229:1: error: 'vector' in namespace 'std' does not name a type
+ std::vector<std::string> hdfs_list(const std::string& path) {
+ ^
+fs.cc: In function 'std::string hdfs_tail(const string&)':
+fs.cc:266:25: error: 'format_string' was not declared in this scope
+             path.c_str()));
+                         ^
+fs.cc:266:26: error: 'shell_get_command_output' was not declared in this scope
+             path.c_str()));
+                          ^
+fs.cc:266:26: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:43:20: note:   'paddle::ps::shell_get_command_output'
+ extern std::string shell_get_command_output(const std::string& cmd);
+                    ^
+fs.cc: In function 'bool hdfs_exists(const string&)':
+fs.cc:271:61: error: 'format_string' was not declared in this scope
+                        hdfs_command().c_str() , path.c_str()));
+                                                             ^
+fs.cc:271:62: error: 'shell_get_command_output' was not declared in this scope
+                        hdfs_command().c_str() , path.c_str()));
+                                                              ^
+fs.cc:271:62: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:43:20: note:   'paddle::ps::shell_get_command_output'
+ extern std::string shell_get_command_output(const std::string& cmd);
+                    ^
+fs.cc:273:25: error: 'trim_spaces' was not declared in this scope
+     if (trim_spaces(test) == "0") {
+                         ^
+fs.cc: In function 'void hdfs_mkdir(const string&)':
+fs.cc:285:91: error: 'format_string' was not declared in this scope
+     shell_execute(format_string("%s -mkdir %s; true", hdfs_command().c_str(), path.c_str()));
+                                                                                           ^
+fs.cc:285:92: error: 'shell_execute' was not declared in this scope
+     shell_execute(format_string("%s -mkdir %s; true", hdfs_command().c_str(), path.c_str()));
+                                                                                            ^
+fs.cc:285:92: note: suggested alternative:
+In file included from fs.h:7:0,
+                 from fs.cc:1:
+shell.h:35:13: note:   'paddle::ps::shell_execute'
+ inline void shell_execute(const std::string& cmd) {
+             ^
+fs.cc: In function 'std::shared_ptr<_IO_FILE> fs_open_read(const string&, int*, const string&)':
+fs.cc:309:17: error: 'FATAL' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                 ^
+fs.cc:309:22: error: 'LOG' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                      ^
+fs.cc: In function 'std::shared_ptr<_IO_FILE> fs_open_write(const string&, int*, const string&)':
+fs.cc:325:17: error: 'FATAL' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                 ^
+fs.cc:325:22: error: 'LOG' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                      ^
+fs.cc: In function 'std::shared_ptr<_IO_FILE> fs_open(const string&, const string&, int*, const string&)':
+fs.cc:341:9: error: 'FATAL' was not declared in this scope
+     LOG(FATAL) << "Unknown mode: " << mode;
+         ^
+fs.cc:341:14: error: 'LOG' was not declared in this scope
+     LOG(FATAL) << "Unknown mode: " << mode;
+              ^
+fs.cc: In function 'int64_t fs_file_size(const string&)':
+fs.cc:351:17: error: 'FATAL' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                 ^
+fs.cc:351:22: error: 'LOG' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                      ^
+fs.cc: In function 'void fs_remove(const string&)':
+fs.cc:366:17: error: 'FATAL' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                 ^
+fs.cc:366:22: error: 'LOG' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                      ^
+fs.cc: At global scope:
+fs.cc:370:1: error: 'vector' in namespace 'std' does not name a type
+ std::vector<std::string> fs_list(const std::string& path) {
+ ^
+fs.cc: In function 'std::string fs_tail(const string&)':
+fs.cc:394:17: error: 'FATAL' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                 ^
+fs.cc:394:22: error: 'LOG' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                      ^
+fs.cc: In function 'bool fs_exists(const string&)':
+fs.cc:409:17: error: 'FATAL' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                 ^
+fs.cc:409:22: error: 'LOG' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                      ^
+fs.cc: In function 'void fs_mkdir(const string&)':
+fs.cc:424:17: error: 'FATAL' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                 ^
+fs.cc:424:22: error: 'LOG' was not declared in this scope
+             LOG(FATAL) << "Not supported";
+                      ^
+shell.cc: In function 'std::shared_ptr<_IO_FILE> shell_fopen(const string&, const string&)':
+shell.cc:6:23: error: 'shell_verbose' was not declared in this scope
+     if (shell_verbose()) {
+                       ^
+shell.cc:6:23: note: suggested alternative:
+In file included from shell.cc:2:0:
+shell.h:21:13: note:   'paddle::ps::shell_verbose'
+ inline bool shell_verbose() {
+             ^
+shell.cc: In lambda function:
+shell.cc:14:27: error: 'shell_verbose' was not declared in this scope
+         if (shell_verbose()) {
+                           ^
+shell.cc:14:27: note: suggested alternative:
+In file included from shell.cc:2:0:
+shell.h:21:13: note:   'paddle::ps::shell_verbose'
+ inline bool shell_verbose() {
+             ^
+shell.cc: In function 'int close_open_fds_internal()':
+shell.cc:43:89: error: 'syscall' was not declared in this scope
+         if ((bytes = syscall(SYS_getdents, dir_fd, (linux_dirent*)buffer, sizeof(buffer))) < 0) {
+                                                                                         ^
+shell.cc:65:25: error: 'close' was not declared in this scope
+                 close(fd);
+                         ^
+shell.cc:70:17: error: 'close' was not declared in this scope
+     close(dir_fd);
+                 ^
+shell.cc: In function 'int shell_popen_fork_internal(const char*, bool, int, int)':
+shell.cc:79:28: error: 'vfork' was not declared in this scope
+     if ((child_pid = vfork()) < 0) {
+                            ^
+shell.cc:89:21: error: 'close' was not declared in this scope
+     close(parent_end);
+                     ^
+shell.cc:92:42: error: 'dup2' was not declared in this scope
+         if (dup2(child_end, child_std_end) != child_std_end) {
+                                          ^
+shell.cc:99:52: error: 'execl' was not declared in this scope
+     if (execl("/bin/sh", "sh", "-c", real_cmd, NULL) < 0) {
+                                                    ^
+shell.cc: In function 'std::shared_ptr<_IO_FILE> shell_popen(const string&, const string&, int*)':
+shell.cc:113:23: error: 'shell_verbose' was not declared in this scope
+     if (shell_verbose()) {
+                       ^
+shell.cc:113:23: note: suggested alternative:
+In file included from shell.cc:2:0:
+shell.h:21:13: note:   'paddle::ps::shell_verbose'
+ inline bool shell_verbose() {
+             ^
+shell.cc:120:22: error: 'pipe' was not declared in this scope
+     if (pipe(pipe_fds) != 0) {
+                      ^
+shell.cc:136:20: error: 'close' was not declared in this scope
+     close(child_end);
+                    ^
+shell.cc: In lambda function:
+shell.cc:145:31: error: 'shell_verbose' was not declared in this scope
+             if (shell_verbose()) {
+                               ^
+shell.cc:145:31: note: suggested alternative:
+In file included from shell.cc:2:0:
+shell.h:21:13: note:   'paddle::ps::shell_verbose'
+ inline bool shell_verbose() {
+             ^
+shell.cc: In function 'int shell_p2open_fork_internal(const char*, int*, int*)':
+shell.cc:170:27: error: 'fork' was not declared in this scope
+     if ((child_pid = fork()) < 0) {
+                           ^
+shell.cc:178:24: error: 'close' was not declared in this scope
+     close(pipein_fds[0]);
+                        ^
+shell.cc:182:34: error: 'dup2' was not declared in this scope
+         if (dup2(pipein_fds[1], 1) != 1) {
+                                  ^
+shell.cc:189:35: error: 'dup2' was not declared in this scope
+         if (dup2(pipeout_fds[0], 0) != 0) {
+                                   ^
+shell.cc:196:52: error: 'execl' was not declared in this scope
+     if (execl("/bin/sh", "sh", "-c", real_cmd, NULL) < 0) {
+                                                    ^
+shell.cc: In function 'std::pair<std::shared_ptr<_IO_FILE>, std::shared_ptr<_IO_FILE> > shell_p2open(const string&)':
+shell.cc:203:23: error: 'shell_verbose' was not declared in this scope
+     if (shell_verbose()) {
+                       ^
+shell.cc:203:23: note: suggested alternative:
+In file included from shell.cc:2:0:
+shell.h:21:13: note:   'paddle::ps::shell_verbose'
+ inline bool shell_verbose() {
+             ^
+shell.cc:211:24: error: 'pipe' was not declared in this scope
+     if (pipe(pipein_fds) != 0) {
+                        ^
+shell.cc:214:25: error: 'pipe' was not declared in this scope
+     if (pipe(pipeout_fds) != 0) {
+                         ^
+shell.cc:220:24: error: 'close' was not declared in this scope
+     close(pipein_fds[1]);
+                        ^
+shell.cc: In lambda function:
+shell.cc:226:27: error: 'shell_verbose' was not declared in this scope
+         if (shell_verbose()) {
+                           ^
+shell.cc:226:27: note: suggested alternative:
+In file included from shell.cc:2:0:
+shell.h:21:13: note:   'paddle::ps::shell_verbose'
+ inline bool shell_verbose() {
+             ^
+shell.cc: In function 'std::string shell_get_command_output(const string&)':
+shell.cc:271:6: error: 'LineFileReader' was not declared in this scope
+      LineFileReader reader;
+      ^
+shell.cc:271:21: error: expected ';' before 'reader'
+      LineFileReader reader;
+                     ^
+shell.cc:273:10: error: 'reader' was not declared in this scope
+      if (reader.getdelim(&*pipe, 0)) {
+          ^
