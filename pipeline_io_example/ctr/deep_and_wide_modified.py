@@ -161,9 +161,6 @@ def infer(is_local, fea_sections, id_dict, batch_size, model_dir, use_parallel_e
 def train_async_local(batch_size):
     fea_sz, fea_sections, model_dict = model_conf.model_conf('thirdparty/model.conf')
     id_dict = None
-    
-    #data_list, predict, auc_var, cur_auc_var, auc_states, avg_cost, label = \
-        #fluid_net.async_net(fea_sections)
     data_list, predict, avg_cost, label = fluid_net.async_net(fea_sections)
     
     optimizer = fluid.optimizer.Adam(learning_rate=0.0005, lazy_mode=True)

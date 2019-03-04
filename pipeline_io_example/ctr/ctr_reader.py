@@ -3,7 +3,7 @@ import gzip
 import os
 import sys
 import logging
-from data_generator import *
+from dataset_generator import MultiSlotDataset
 import model_conf
 import xxhash
 
@@ -11,12 +11,12 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("fluid")
 logger.setLevel(logging.INFO)
 
-class TiebaGenerator(MultiSlotDataGenerator):
+class TiebaGenerator(MultiSlotDataset):
     def load_resource(self, fea_sections):
         self.slot_name = ['slot%d' % i for i in range(31)] + ["label"]
         self.fea_sections = fea_sections
 
-    def process(self, line):
+    def generate_sample(self, line):
         def data_iterator():
             fields = line.decode('gbk').encode('utf-8').strip('\r\n').split(' ')
             if len(fields) != 32:
