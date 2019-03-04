@@ -16,10 +16,10 @@ import sys
 import os
 import paddle
 import re
-from data_generator_x import MultiSlotDataGenerator
+from dataset_generator import MultiSlotDataset
 
 
-class IMDBDataset(MultiSlotDataGenerator):
+class IMDBDataset(MultiSlotDataset):
     def load_resource(self, dictfile):
         self._vocab = {}
         wid = 0
@@ -30,7 +30,7 @@ class IMDBDataset(MultiSlotDataGenerator):
         self._unk_id = len(self._vocab)
         self._pattern = re.compile(r'(;|,|\.|\?|!|\s|\(|\))')
     
-    def process(self, line):
+    def generate_sample(self, line):
         def data_iter():
             send = '|'.join(line.split('|')[:-1]).lower().replace("<br />",
                                                                   " ").strip()

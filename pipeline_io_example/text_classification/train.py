@@ -26,16 +26,31 @@ def train(network, dict_dim, lr, save_dirname, training_data_dirname, pass_num,
     file_names = os.listdir(training_data_dirname)
     filelist = ['data_generator/train_data/%s' % x for x in os.listdir("data_generator/train_data")]
 
-    dataset = fluid.DataFeedDesc('data_feed.proto')
-    dataset.set_batch_size(
-        batch_size)  # datafeed should be assigned a batch size
-    dataset.set_use_slots(['words', 'label'])
+    dataset = fluid.Dataset()
+    dataset.set_batch_size(32)
+    dataset.set_use_var([])
+
+    #dataset = fluid.DataFeedDesc('data_feed.proto')
+    #dataset.set_batch_size(
+    #    batch_size)  # datafeed should be assigned a batch size
+    #dataset.set_use_slots(['words', 'label'])
     #dataset.set_pipe_command('/home/users/dongdaxiang/paddle_whls/new_io/paddle_release_home/python/bin/python new_data_reader.py')
-    dataset.proto_desc.pipe_command = "/home/users/dongdaxiang/paddle_whls/new_io/paddle_release_home/python/bin/python new_data_reader.py"
+    #dataset.proto_desc.pipe_command = "/home/users/dongdaxiang/paddle_whls/new_io/paddle_release_home/python/bin/python new_data_reader.py"
+
 
     data = fluid.layers.data(
         name="words", shape=[1], dtype="int64", lod_level=1)
-    label = fluid.layers.data(name="label", shape=[1], dtype="int64")
+    label = fluid.layers.data(
+        name="label", shape=[1], dtype="int64")
+
+    dataset = fluid.Dataset()
+    dataset.set_batch_size(32)
+    dataset.set_use_var([data, label])
+    dataset.set_pipe_command("python user_reader.py")
+    dataset.set_filelist(["datadir/%s" % x for x in os.listdir("datadir")])
+    dataset.load_into_memory()
+    dataset.local_shuffle()
+    dataset.distributed_shuffle(instance)
 
     avg_cost, acc, prediction = network(data, label, dict_dim)
     optimizer = fluid.optimizer.Adagrad(learning_rate=lr)
@@ -47,6 +62,16 @@ def train(network, dict_dim, lr, save_dirname, training_data_dirname, pass_num,
     place = fluid.CPUPlace()
     executor = fluid.Executor(place)
     executor.run(startup_program)
+    
+    filelist = ["datadir/%s" % x for x in os.listdir("datadir")]
+    pass_num = 10
+    for i in range(pass_num):
+        exe.run_from_dataset(main_program,
+                             dataset,
+                             thread_num,
+                             [acc],
+                             debug=False)
+
 
     async_executor = fluid.AsyncExecutor(place)
     for i in range(pass_num):
