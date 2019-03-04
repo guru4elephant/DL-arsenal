@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*
 
 import numpy as np
-from data_generator import MultiSlotDataGenerator
+from dataset_generator import MultiSlotDataset
 import logging
 import sys
 
@@ -39,7 +39,7 @@ def load_kv_format_file(filename, kv_dict):
             word_id += 1
             
 
-class Word2VecGenerator(MultiSlotDataGenerator):
+class Word2VecGenerator(MultiSlotDataset):
     def load_resource(self, dict_path, pcode_path=None,
                       ptable_path=None, window_size=5):
         self.window_size_ = window_size
@@ -68,7 +68,7 @@ class Word2VecGenerator(MultiSlotDataGenerator):
         targets = set(words[start_point:idx] + words[idx + 1:end_point + 1])
         return list(targets)
 
-    def process(self, line):
+    def generate_sample(self, line):
         word_ids = [
             self.word_to_id_[word] for word in line.split()
             if word in self.word_to_id_
@@ -100,22 +100,5 @@ if __name__ == "__main__":
                            pcode_path="data/1-billion_dict_pcode",
                            ptable_path="data/1-billion_dict_ptable",
                            window_size=window_size)
-    '''
-    filelist = ["data/1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled/news.en-%s-of-00100" \
-                % str(i).zfill(5) for i in range(1, 20, 1)]
-    '''
-    '''
-    line_limit = 1000000
-    process_num = 20
-    word2vec.run_from_files(filelist=filelist,
-                            line_limit=line_limit,
-                            process_num=process_num, 
-                            output_dir="./data_output_with_pcode")
-    '''
     word2vec.run_from_stdin(is_local=True)
-    '''
-    hadoop_ugi="nlp,hello123", 
-    hadoop_host="hdfs://yq01-heng-hdfs.dmop.baidu.com:54310",
-    proto_path="/app/ssg/nlp/sc/yebaiwei/async_executor_data_generator_output")
-    '''
 
