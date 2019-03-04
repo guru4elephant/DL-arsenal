@@ -35,18 +35,6 @@ q_ss = fluid.layers.softsign(q_sum)
 q_fc = fluid.layers.fc(input=q_ss,
                        size=hid_dim,
                        param_attr=fluid.ParamAttr(name="__q_fc__", learning_rate=base_lr))
-q_fc2 = fluid.layers.fc(input=q_fc,
-                        size=hid_dim)
-q_fc3 = fluid.layers.fc(input=q_fc2,
-                        size=hid_dim)
-q_fc4 = fluid.layers.fc(input=q_fc3,
-                        size=hid_dim)
-q_fc5 = fluid.layers.fc(input=q_fc4,
-                        size=hid_dim)
-q_fc6 = fluid.layers.fc(input=q_fc5,
-                        size=hid_dim)
-q_fc7 = fluid.layers.fc(input=q_fc6,
-                        size=hid_dim)
 
 # label data
 #label = fluid.layers.data(name="label", shape=[1], dtype="int64")
@@ -82,8 +70,8 @@ nt_fc = fluid.layers.fc(input=nt_ss,
                         size=hid_dim,
                         param_attr=fluid.ParamAttr(name="__fc__", learning_rate=base_lr),
                         bias_attr=fluid.ParamAttr(name="__fc_b__"))
-cos_q_pt = fluid.layers.cos_sim(q_fc7, pt_fc)
-cos_q_nt = fluid.layers.cos_sim(q_fc7, nt_fc)
+cos_q_pt = fluid.layers.cos_sim(q_fc, pt_fc)
+cos_q_nt = fluid.layers.cos_sim(q_fc, nt_fc)
 # hinge_loss
 loss_op1 = fluid.layers.elementwise_sub( \
                                          fluid.layers.fill_constant_batch_size_like(input=cos_q_pt, \
@@ -108,15 +96,15 @@ place = fluid.CPUPlace()
 exe = fluid.Executor(place)                
 exe.run(fluid.default_startup_program())
 async_exe = fluid.AsyncExecutor(place)
-thread_num = 40
+thread_num = 10
 dataset = fluid.DataFeedDesc('data_feed.proto')
-dataset.set_batch_size(128)
+dataset.set_batch_size(32)
 dataset.set_use_slots([q.name, pt.name, nt.name])
 dataset.set_pipe_command("/home/users/dongdaxiang/paddle_whls/new_io/paddle_release_home/python/bin/python pairwise_reader.py")
 #dataset.set_pipe_command("cat")
 filelist = ["ids/%s" % x for x in os.listdir("ids")]
 #filelist = ["prepared.txt"]
 print(filelist)
-async_exe.run(fluid.default_main_program(), dataset, filelist, thread_num, [], debug=True)
+async_exe.run(fluid.default_main_program(), dataset, filelist, thread_num, [], debug=False)
 
                 

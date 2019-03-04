@@ -2,15 +2,12 @@ from __future__ import print_function
 
 import logging
 import numpy as np
-from data_generator import MultiSlotDataGenerator
+from dataset_generator import MultiSlotDataset
 import logging
 import sys
 import os
-#logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
-#logger = logging.getLogger("fluid")
-#logger.setLevel(logging.INFO)
 
-class PairwiseReader(MultiSlotDataGenerator):
+class PairwiseReader(MultiSlotDataset):
     def init_reader(self, max_len, sampling_rate):
         np.random.seed(1)
         self.max_len = max_len
@@ -19,14 +16,7 @@ class PairwiseReader(MultiSlotDataGenerator):
         self.pos_title_buffer = None
         self.neg_title_buffer = None
 
-    def process(self, line):
-        '''
-        def default_iter():
-            yield ("query", self.query_buffer), ("pos_title", self.pos_title_buffer), ("neg_title", self.neg_title_buffer)
-        if self.query_buffer != None:
-            return default_iter
-        '''
-
+    def generate_sample(self, line):
         def check_empty(str):
             if str == "":
                 return int(750000)
@@ -61,13 +51,6 @@ class PairwiseReader(MultiSlotDataGenerator):
                 prob = get_rand()
                 if prob < self.sampling_rate:
                     pos_index = np.random.randint(0, len(pos_title))
-                    '''
-                    yield ("query", query), \
-                        ("pos_title", pos_title[pos_index]), \
-                        ("pos_abs", pos_abs[pos_index]), \
-                        ("neg_title", neg_title[i]), \
-                        ("neg_abs", neg_abs[i])
-                    '''
                     self.query_buffer = query
                     self.pos_title_buffer = pos_title[pos_index]
                     self.neg_title_buffer = neg_title[i]
