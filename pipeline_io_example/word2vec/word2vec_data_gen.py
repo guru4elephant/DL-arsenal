@@ -68,7 +68,7 @@ class Word2VecGenerator(MultiSlotDataGenerator):
         targets = set(words[start_point:idx] + words[idx + 1:end_point + 1])
         return list(targets)
 
-    def process(self, line):
+    def generate_sample(self, line):
         word_ids = [
             self.word_to_id_[word] for word in line.split()
             if word in self.word_to_id_
