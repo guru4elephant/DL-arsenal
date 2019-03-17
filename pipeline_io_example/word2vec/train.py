@@ -2,54 +2,54 @@ from __future__ import print_function
 import argparse
 import logging
 import os
+import sys
 import time
-
+import math
+import random
 import numpy as np
-
-# disable gpu training for this example
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
-
 import paddle
 import paddle.fluid as fluid
-from paddle.fluid.executor import global_scope
-
+import six
 import reader
-from network_conf import skip_gram_word2vec
-from infer import inference_test
+from net import skip_gram_word2vec, skip_gram_word2vec_dataset
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("fluid")
 logger.setLevel(logging.INFO)
 
-
 def parse_args():
     parser = argparse.ArgumentParser(
         description="PaddlePaddle Word2vec example")
     parser.add_argument(
-        '--train_data_path',
+        '--train_data_dir',
         type=str,
-        default='./data/1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled',
-        help="The path of training dataset")
+        default='./data/text',
+        help="The path of taining dataset")
+    parser.add_argument(
+        '--base_lr',
+        type=float,
+        default=0.01,
+        help="The number of learing rate (default: 0.01)")
+    parser.add_argument(
+        '--save_step',
+        type=int,
+        default=500000,
+        help="The number of step to save (default: 500000)")
+    parser.add_argument(
+        '--print_batch',
+        type=int,
+        default=10,
+        help="The number of print_batch (default: 10)")
     parser.add_argument(
         '--dict_path',
         type=str,
         default='./data/1-billion_dict',
         help="The path of data dict")
     parser.add_argument(
-        '--test_data_path',
-        type=str,
-        default='./data/text8',
-        help="The path of testing dataset")
-    parser.add_argument(
         '--batch_size',
         type=int,
-        default=100,
-        help="The size of mini-batch (default:100)")
-    parser.add_argument(
-        '--epochs',
-        type=int,
-        default=10,
-        help="epoch of training")
+        default=500,
+        help="The size of mini-batch (default:500)")
     parser.add_argument(
         '--num_passes',
         type=int,
@@ -65,125 +65,68 @@ def parse_args():
         type=int,
         default=64,
         help='sparse feature hashing space for index processing')
-
-    parser.add_argument(
-        '--with_hs',
-        action='store_true',
-        required=False,
-        default=False,
-        help='using hierarchical sigmoid, (default: False)')
-
-    parser.add_argument(
-        '--with_nce',
-        action='store_true',
-        required=False,
-        default=False,
-        help='using negtive sampling, (default: True)')
-
-    parser.add_argument(
-        '--max_code_length',
-        type=int,
-        default=40,
-        help='max code length used by hierarchical sigmoid, (default: 40)')
-
     parser.add_argument(
         '--is_sparse',
         action='store_true',
         required=False,
         default=False,
         help='embedding and nce will use sparse or not, (default: False)')
-
-    parser.add_argument(
-        '--with_Adam',
-        action='store_true',
-        required=False,
-        default=False,
-        help='Using Adam as optimizer or not, (default: False)')
-
-    parser.add_argument(
-        '--is_local',
-        action='store_true',
-        required=False,
-        default=False,
-        help='Local train or not, (default: False)')
-
-    parser.add_argument(
-        '--with_speed',
-        action='store_true',
-        required=False,
-        default=False,
-        help='print speed or not , (default: False)')
-
-    parser.add_argument(
-        '--with_infer_test',
-        action='store_true',
-        required=False,
-        default=False,
-        help='Do inference every 100 batches , (default: False)')
-
-    parser.add_argument(
-        '--rank_num',
-        type=int,
-        default=4,
-        help="find rank_num-nearest result for test (default: 4)")
-
-    parser.add_argument(
-        '--use_pyreader',
-        required=False,
-        default=False,
-        help='Whether you want to use pyreader, (default: False)')
     return parser.parse_args()
 
-
-def async_train_loop(args, train_program, loss, dataset, filelist):
-    place = fluid.CPUPlace()
-    exe = fluid.Executor(place)
-    exe.run(fluid.default_startup_program())
-    async_executor = fluid.AsyncExecutor(place)
-    thread_num = 40
-    for i in range(args.epochs):
-        async_executor.run(
-            train_program, # main program
-            dataset, # dataset
-            filelist, # filelist
-            thread_num, # thread
-            [], # fetch
-            debug=True) # debug
-        epoch_model = "word2vec_model/epoch" + str(i + 1)
-        fluid.io.save_inference_model(
-            epoch_model,
-            [data.name, label.name],
-            [acc],
-            executor)
-
 def GetFileList(data_path):
-    #return data_path + "/" + os.listdir(data_path)
-    res_list = [data_path + "/" + x for x in os.listdir(data_path)]
-    return res_list
+    return [data_path + "/" + x for x in os.listdir(data_path)]
 
-def async_train(args):
+def train(args):
+
     if not os.path.isdir(args.model_output_dir):
-                os.mkdir(args.model_output_dir)
-    filelist = GetFileList(args.train_data_path)
-    word2vec_reader = reader.Word2VecReader(
-        args.dict_path, args.train_data_path, filelist, 0, 1)
-    loss, words = skip_gram_word2vec(
-        word2vec_reader.dict_size,
-        word2vec_reader.word_frequencys,
-        args.embedding_size,
-        args.max_code_length,
-        args.with_hs,
-        args.with_nce,
-        is_sparse=args.is_sparse)
-    dataset = fluid.DataFeedDesc('data_feed.proto')
-    dataset.set_batch_size(args.batch_size)
-    dataset.set_use_slots([w.name for w in words])
-    dataset.set_pipe_command("/home/users/dongdaxiang/paddle_whls/new_io/paddle_release_home/python/bin/python word2vec_data_gen.py")
-    optimizer = fluid.optimizer.SGD(learning_rate=1e-4)
-    optimizer.minimize(loss)
-    async_train_loop(args, fluid.default_main_program(), loss, dataset, filelist)
+        os.mkdir(args.model_output_dir)
 
+    logger.info("dict_size: {}".format(word2vec_reader.dict_size))
+
+    input_word = fluid.layers.data(
+        name="context_id", shape=[1], dtype="int64", lod_level=0)
+    true_word = fluid.layers.data(
+        name="target", shape=[1], dtype="int64", lod_level=0)
+    neg_num = 5
+    neg_word = fluid.layers.data(
+        name="neg_label", shape=[neg_num], dtype='int64', lod_level=0)
+
+    loss = skip_gram_word2vec_dataset(input_word,
+                                      true_word,
+                                      neg_word,
+                                      word2vec_reader.dict_size,
+                                      id_frequencys_pow,
+                                      args.embedding_size,
+                                      is_sparse=args.is_sparse)
+
+    optimizer = fluid.optimizer.SGD(
+            learning_rate=fluid.layers.exponential_decay(
+                learning_rate=args.base_lr,
+                decay_steps=100000,
+                decay_rate=0.999,
+                staircase=True))
+
+    optimizer.minimize(loss)
+
+    # do local training 
+    logger.info("run local training")
+    main_program = fluid.default_main_program()
+
+    dataset = fluid.DatasetFactory().create_dataset()
+    dataset.set_use_var([input_word, true_word, neg_word])
+    dataset.set_batch_size(args.batch_size)
+    dataset.set_pipe_command("python new_reader.py")
+    dataset.set_thread(40)
+    filelist = GetFileList(args.train_data_dir) * 40
+    dataset.set_filelist(filelist)
+
+    exe = fluid.Executor(fluid.CPUPlace())
+    exe.run(fluid.default_startup_program())
+    for i in range(args.num_passes):
+        exe.train_from_dataset(
+            program=fluid.default_main_program(),
+            dataset=dataset, debug=True)
 
 if __name__ == '__main__':
     args = parse_args()
-    async_train(args)
+    train(args)
