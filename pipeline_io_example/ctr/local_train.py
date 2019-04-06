@@ -30,7 +30,7 @@ def train():
     exe.run(fluid.default_startup_program())
     dataset = fluid.DatasetFactory().create_dataset()
     dataset.set_use_var([dense_input] + sparse_input_ids + [label])
-    pipe_command = "/home/users/dongdaxiang/paddle_whls/pipe_reader/paddle_release_home/python/bin/python criteo_reader.py %d" % args.sparse_feature_dim
+    pipe_command = "python criteo_reader.py %d" % args.sparse_feature_dim
     dataset.set_pipe_command(pipe_command)
     dataset.set_batch_size(100)
     thread_num = 10

@@ -13,6 +13,10 @@ import six
 
 from net import skip_gram_word2vec_dataset
 
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("fluid")
+logger.setLevel(logging.INFO)
+
 def GetFileList(data_path):
     return [data_path + "/" + x for x in os.listdir(data_path)]
 
@@ -48,7 +52,7 @@ def train(args):
 
     dataset = fluid.DatasetFactory().create_dataset()
     dataset.set_use_var([input_word, true_word, neg_word])
-    dataset.set_pipe_command("/home/users/dongdaxiang/paddle_whls/pipe_reader/paddle_release_home/python/bin/python reader.py")
+    dataset.set_pipe_command("sudo /home/users/dongdaxiang/paddle_whls/pipe_reader/paddle_release_home/python/bin/python reader.py")
     dataset.set_batch_size(args.batch_size)
     filelist = GetFileList(args.train_data_dir)
     dataset.set_filelist(filelist)
@@ -57,6 +61,7 @@ def train(args):
     exe = fluid.Executor(fluid.CPUPlace())
     exe.run(fluid.default_startup_program())
     for i in range(args.epochs):
+        logger.info("Going to train epoch {}".format(i))
         exe.train_from_dataset(program=fluid.default_main_program(),
                                dataset=dataset)
 

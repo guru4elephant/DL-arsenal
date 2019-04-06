@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*
 
 import numpy as np
-import preprocess
 import logging
 import math
 import random
@@ -114,7 +113,8 @@ class Word2VecReader(MultiSlotDataGenerator):
 
         return nce_reader
 
-word2vec = Word2VecReader()
-filelist = os.listdir("./convert_1billion")
-word2vec.load_resource("./data/new_1-billion-dict", "./data/convert_1billion", filelist, 0, 1)
-word2vec.run_from_stdin()
+if __name__ == '__main__':
+    word2vec = Word2VecReader()
+    filelist = os.listdir("./convert_1billion")
+    word2vec.load_resource("./data/new_1-billion-dict", "./data/convert_1billion", filelist, 0, 1)
+    word2vec.run_from_stdin()
