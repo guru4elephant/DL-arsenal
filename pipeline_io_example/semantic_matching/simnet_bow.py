@@ -33,9 +33,9 @@ pt = fluid.layers.data(
 nt = fluid.layers.data(
     name="neg_title", shape=[1], dtype="int64", lod_level=1)
 
-avg_cost, pt_s, nt_s, pnum, nnum, train_pn = bow_encoder(q, pt, nt,
-                                                         dict_dim, emb_dim,
-                                                         hid_dim, emb_lr, fc_lr, margin)
+avg_cost, pt_s, nt_s, pnum, nnum, train_pn = \
+        bow_encoder(q, pt, nt, dict_dim, emb_dim,
+                    hid_dim, emb_lr, fc_lr, margin)
 
 sgd_optimizer = fluid.optimizer.SGD(learning_rate=base_lr)
 sgd_optimizer.minimize(avg_cost)
@@ -49,7 +49,7 @@ dataset = fluid.DatasetFactory().create_dataset()
 dataset.set_batch_size(batch_size)
 dataset.set_use_var([q, pt, nt])
 dataset.set_batch_size(batch_size)
-pipe_command='/home/users/dongdaxiang/paddle_whls/pipe_reader/paddle_release_home/python/bin/python pairwise_file_reader.py'
+pipe_command = 'python pairwise_file_reader.py'
 dataset.set_pipe_command(pipe_command)
 filelist = ["train_raw/%s" % x for x in os.listdir("train_raw")]
 
@@ -57,20 +57,14 @@ dataset.set_filelist(filelist[:int(0.9*len(filelist))])
 dataset.set_thread(thread_num)
 epochs = 40
 
-with open("main_program.desc.txt", "w") as fout:
-    fout.write(str(fluid.default_main_program()))
-
-with open("startup_program.desc.txt", "w") as fout:
-    fout.write(str(fluid.default_startup_program()))
-
 save_dirname = "simnet_bow_model"
 for i in range(epochs):
     dataset.set_filelist(filelist[:int(0.9*len(filelist))])
     exe.train_from_dataset(program=fluid.default_main_program(),
                            dataset=dataset,
-                           fetch_list=[train_pn, pnum, nnum],
-                           fetch_info=["pos/neg", "right num", "wrong num"],
-                           print_period=100,
+                           fetch_list=[train_pn],
+                           fetch_info=["pos/neg"],
+                           print_period=10000,
                            debug=False)
     sys.stderr.write("epoch%d finished" % (i + 1))
     fluid.io.save_inference_model("%s/epoch%d.model" % (save_dirname, (i + 1)),
