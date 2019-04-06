@@ -1,19 +1,30 @@
-"""
-   docstring
-"""
+#   Copyright (c) 2019 PaddlePaddle Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sys
-import time
-import numpy as np
-import math
 import paddle.fluid as fluid
-base_lr = 0.2
-emb_lr = base_lr * 3
-dict_dim = 1451594
-emb_dim = 256
-hid_dim = 2048
-margin = 0.1
+from nets import bow_encoder
+base_lr = 0.0001
 batch_size = 128
+emb_lr = 5.0 * batch_size
+fc_lr = 200.0
+dict_dim = 1451594
+emb_dim = 128
+hid_dim = 128
+margin = 0.1
+
 
 q = fluid.layers.data(
     name="query", shape=[1], dtype="int64", lod_level=1)
@@ -22,89 +33,46 @@ pt = fluid.layers.data(
 nt = fluid.layers.data(
     name="neg_title", shape=[1], dtype="int64", lod_level=1)
 
-## embedding
-q_emb = fluid.layers.embedding(input=q,
-                               size=[dict_dim, emb_dim],
-                               param_attr=fluid.ParamAttr(name="__emb__", learning_rate=emb_lr),
-                               is_sparse=True)
-## vsum
-q_sum = fluid.layers.sequence_pool(input=q_emb,
-                                   pool_type='sum')
-q_ss = fluid.layers.softsign(q_sum)
-## fc layer after conv
-q_fc = fluid.layers.fc(input=q_ss,
-                       size=hid_dim,
-                       param_attr=fluid.ParamAttr(name="__q_fc__", learning_rate=base_lr))
+avg_cost, pt_s, nt_s, pnum, nnum, train_pn = bow_encoder(q, pt, nt,
+                                                         dict_dim, emb_dim,
+                                                         hid_dim, emb_lr, fc_lr, margin)
 
-# label data
-#label = fluid.layers.data(name="label", shape=[1], dtype="int64")
-
-## embedding
-pt_emb = fluid.layers.embedding(input=pt,
-                                size=[dict_dim, emb_dim],
-                                param_attr=fluid.ParamAttr(name="__emb__", learning_rate=emb_lr),
-                                is_sparse=True)
-## vsum
-pt_sum = fluid.layers.sequence_pool(
-    input=pt_emb,
-    pool_type='sum')
-pt_ss = fluid.layers.softsign(pt_sum)
-## fc layer
-pt_fc = fluid.layers.fc(input=pt_ss,
-                        size=hid_dim,
-                        param_attr=fluid.ParamAttr(name="__fc__", learning_rate=base_lr),
-                        bias_attr=fluid.ParamAttr(name="__fc_b__"))
-
-## embedding
-nt_emb = fluid.layers.embedding(input=nt,
-                                size=[dict_dim, emb_dim],
-                                param_attr=fluid.ParamAttr(name="__emb__", learning_rate=emb_lr),
-                                is_sparse=True)
-## vsum
-nt_sum = fluid.layers.sequence_pool(
-    input=nt_emb,
-    pool_type='sum')
-nt_ss = fluid.layers.softsign(nt_sum)
-## fc layer
-nt_fc = fluid.layers.fc(input=nt_ss,
-                        size=hid_dim,
-                        param_attr=fluid.ParamAttr(name="__fc__", learning_rate=base_lr),
-                        bias_attr=fluid.ParamAttr(name="__fc_b__"))
-cos_q_pt = fluid.layers.cos_sim(q_fc, pt_fc)
-cos_q_nt = fluid.layers.cos_sim(q_fc, nt_fc)
-# hinge_loss
-loss_op1 = fluid.layers.elementwise_sub( \
-                                         fluid.layers.fill_constant_batch_size_like(input=cos_q_pt, \
-                                                                                    shape=[-1, 1], value=margin, dtype='float32'), \
-                                         cos_q_pt)
-loss_op2 = fluid.layers.elementwise_add(loss_op1, cos_q_nt)
-loss_op3 = fluid.layers.elementwise_max( \
-                                         fluid.layers.fill_constant_batch_size_like(input=loss_op2, \
-                                                                                    shape=[-1, 1], value=0.0, dtype='float32'), \
-                                         loss_op2)
-avg_cost = fluid.layers.mean(loss_op3)
-'''
-acc = fluid.layers.accuracy(input=cos_q_pt, \
-                            label=label, k=1)
-'''
-#real_acc = get_acc(cos_q_nt, cos_q_pt)
-# SGD optimizer
 sgd_optimizer = fluid.optimizer.SGD(learning_rate=base_lr)
 sgd_optimizer.minimize(avg_cost)
 
 place = fluid.CPUPlace()
-exe = fluid.Executor(place)                
+exe = fluid.Executor(place)
 exe.run(fluid.default_startup_program())
-async_exe = fluid.AsyncExecutor(place)
-thread_num = 10
-dataset = fluid.DataFeedDesc('data_feed.proto')
-dataset.set_batch_size(32)
-dataset.set_use_slots([q.name, pt.name, nt.name])
-dataset.set_pipe_command("/home/users/dongdaxiang/paddle_whls/new_io/paddle_release_home/python/bin/python pairwise_reader.py")
-#dataset.set_pipe_command("cat")
-filelist = ["ids/%s" % x for x in os.listdir("ids")]
-#filelist = ["prepared.txt"]
-print(filelist)
-async_exe.run(fluid.default_main_program(), dataset, filelist, thread_num, [], debug=False)
 
-                
+thread_num = 1
+dataset = fluid.DatasetFactory().create_dataset()
+dataset.set_batch_size(batch_size)
+dataset.set_use_var([q, pt, nt])
+dataset.set_batch_size(batch_size)
+pipe_command='/home/users/dongdaxiang/paddle_whls/pipe_reader/paddle_release_home/python/bin/python pairwise_file_reader.py'
+dataset.set_pipe_command(pipe_command)
+filelist = ["train_raw/%s" % x for x in os.listdir("train_raw")]
+
+dataset.set_filelist(filelist[:int(0.9*len(filelist))])
+dataset.set_thread(thread_num)
+epochs = 40
+
+with open("main_program.desc.txt", "w") as fout:
+    fout.write(str(fluid.default_main_program()))
+
+with open("startup_program.desc.txt", "w") as fout:
+    fout.write(str(fluid.default_startup_program()))
+
+save_dirname = "simnet_bow_model"
+for i in range(epochs):
+    dataset.set_filelist(filelist[:int(0.9*len(filelist))])
+    exe.train_from_dataset(program=fluid.default_main_program(),
+                           dataset=dataset,
+                           fetch_list=[train_pn, pnum, nnum],
+                           fetch_info=["pos/neg", "right num", "wrong num"],
+                           print_period=100,
+                           debug=False)
+    sys.stderr.write("epoch%d finished" % (i + 1))
+    fluid.io.save_inference_model("%s/epoch%d.model" % (save_dirname, (i + 1)),
+                                  [q.name, pt.name, nt.name], [pnum, nnum], exe)
+

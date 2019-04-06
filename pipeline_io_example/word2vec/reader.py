@@ -115,6 +115,6 @@ class Word2VecReader(MultiSlotDataGenerator):
         return nce_reader
 
 word2vec = Word2VecReader()
-filelist = os.listdir("./data/convert_text")
-word2vec.load_resource("./data/small-1700w-dict", "./data/convert_text", filelist, 0, 1)
+filelist = os.listdir("./convert_1billion")
+word2vec.load_resource("./data/new_1-billion-dict", "./data/convert_1billion", filelist, 0, 1)
 word2vec.run_from_stdin()
