@@ -21,8 +21,13 @@ import numpy as np
 
 import paddle
 import paddle.fluid as fluid
+import logging
 
 from imdb_reader import IMDBDataset
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("fluid")
+logger.setLevel(logging.INFO)
 
 def to_lodtensor(data, place):
     seq_lens = [len(seq) for seq in data]
@@ -72,7 +77,7 @@ def infer(test_reader, use_cuda, model_path=None):
             total_count += len(data)
 
         avg_acc = total_acc / total_count
-        print("model_path: %s, avg_acc: %f" % (model_path, avg_acc))
+        logger.info("Model Path: {}, avg_acc: {}".format(model_path, avg_acc))
 
 
 if __name__ == "__main__":

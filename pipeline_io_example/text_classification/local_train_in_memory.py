@@ -38,7 +38,7 @@ if __name__ == "__main__":
     data = fluid.layers.data(name="words", shape=[1], dtype="int64", lod_level=1)
     label = fluid.layers.data(name="label", shape=[1], dtype="int64")
 
-    dataset = fluid.DatasetFactory().create_dataset()
+    dataset = fluid.DatasetFactory().create_dataset("InMemoryDataset")
     filelist = ["train_data/%s" % x for x in os.listdir("train_data")]
     dataset.set_use_var([data, label])
     pipe_command = "python imdb_reader.py"
@@ -46,6 +46,8 @@ if __name__ == "__main__":
     dataset.set_batch_size(4)
     dataset.set_filelist(filelist)
     dataset.set_thread(10)
+    dataset.load_into_memory()
+    #dataset.local_shuffle()
     from nets import cnn_net
     avg_cost, acc, prediction = cnn_net(data, label, dict_dim)
     optimizer = fluid.optimizer.SGD(learning_rate=0.01)
