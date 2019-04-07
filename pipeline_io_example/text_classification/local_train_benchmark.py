@@ -16,6 +16,7 @@ import sys
 import paddle
 import logging
 import paddle.fluid as fluid
+from args import parse_args
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("fluid")
@@ -32,31 +33,47 @@ def load_vocab(filename):
     return vocab
 
 if __name__ == "__main__":
+    args = parse_args()
+    if not os.path.isdir(args.model_output_dir):
+        os.mkdir(args.model_output_dir)
     vocab = load_vocab('imdb.vocab')
     dict_dim = len(vocab)
 
     data = fluid.layers.data(name="words", shape=[1], dtype="int64", lod_level=1)
     label = fluid.layers.data(name="label", shape=[1], dtype="int64")
 
-    dataset = fluid.DatasetFactory().create_dataset("InMemoryDataset")
+    dataset = fluid.DatasetFactory().create_dataset(args.dataset_mode)
     filelist = ["train_data/%s" % x for x in os.listdir("train_data")]
+    filelist = [filelist[0]] * 10
     dataset.set_use_var([data, label])
     pipe_command = "python imdb_reader.py"
     dataset.set_pipe_command(pipe_command)
-    dataset.set_batch_size(4)
+    batch = 4
+    from nets import *
+    if args.text_encoder == "bow":
+        network = bow_net
+        batch = 128
+    elif args.text_encoder == "cnn":
+        network = cnn_net
+    elif args.text_encoder == "gru":
+        network = gru_net
+    else:
+        network = lstm_net
+
+    dataset.set_batch_size(batch)
     dataset.set_filelist(filelist)
-    dataset.set_thread(10)
-    dataset.load_into_memory()
-    #dataset.local_shuffle()
-    from nets import cnn_net
-    avg_cost, acc, prediction = cnn_net(data, label, dict_dim)
+    dataset.set_thread(args.thread)
+    if args.dataset_mode == "InMemoryDataset":
+        dataset.load_into_memory()
+
+    avg_cost, acc, prediction = network(data, label, dict_dim)
     optimizer = fluid.optimizer.SGD(learning_rate=0.01)
     optimizer.minimize(avg_cost)
 
     exe = fluid.Executor(fluid.CPUPlace())
     exe.run(fluid.default_startup_program())
-    epochs = 30
-    save_dirname = "cnn_model"
+    epochs = args.num_passes
+    save_dirname = args.model_output_dir
     for i in range(epochs):
         exe.train_from_dataset(program=fluid.default_main_program(),
                                dataset=dataset, debug=False)
