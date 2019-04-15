@@ -64,7 +64,8 @@ class IMDBDataset(dg.MultiSlotDataGenerator):
                     for line in fin:
                         linenum += 1
                         feas, label = self.get_words_and_label_by_hashing(line)
-                        yield np.array(feas), np.array(label)
+                        #yield np.array(feas), np.array(label)
+                        yield [feas, label]
         batch_iter = paddle.batch(
             paddle.reader.shuffle(local_iter, buf_size=buf_size),
             batch_size=batch)
