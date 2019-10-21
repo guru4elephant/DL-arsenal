@@ -71,11 +71,10 @@ dataset = fluid.DatasetFactory().create_dataset()
 dataset.set_use_var(self.sparse_input_ids + [label])
 pipe_command = "python dataset_generator.py"
 dataset.set_pipe_command(pipe_command)
-dataset.set_batch_size(params.batch_size)
-thread_num = int(params.cpu_num)
-dataset.set_thread(thread_num)
-
-optimizer = fluid.optimizer.SGD(params.learning_rate)
+dataset.set_batch_size(128)
+dataset.set_thread(10)
+dataset.set_hdfs_config("afs:xxx.xxx.xx.xx", "xxxx,xxxx")
+optimizer = fluid.optimizer.SGD(0.01)
 optimizer.minimize(loss)
 exe = fluid.Executor(fluid.CPUPlace())
 
