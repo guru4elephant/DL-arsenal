@@ -5,7 +5,10 @@
 
 <p align="center">
 <img align="center" src="Resnet50_on_imagenet.png" height="230px" width="540px">
-<p>
+</p>
+<p align="center">
+图1：Paddle 1.6在Resnet50上的训练吞吐基准
+</p>
 
 ### 源于产业实践
 - [飞桨（PaddlePaddle）](https://github.com/PaddlePaddle/Paddle)是百度开源的一款深度学习框架，其中的分布式训练能力正是从百度众多大规模深度学习场景中打磨而成，可谓源于多年的产业实践。在超大规模训练数据很容易获得的场景下，比如推荐、搜索等，用户可以基于海量数据训练效果非常优秀的深度学习模型。为了能够在有限的时间内训练出效果符合预期的模型，并快速应用到产品中，分布式训练的是百度算法工程师提升训练速度最常见的手段之一。
