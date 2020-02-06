@@ -15,8 +15,11 @@
 - [飞桨（PaddlePaddle）](https://github.com/PaddlePaddle/Paddle)是百度开源的一款深度学习框架，其中的分布式训练能力正是从百度众多大规模深度学习场景中打磨而成，可谓源于多年的产业实践。在超大规模训练数据很容易获得的场景下，比如推荐、搜索等，用户可以基于海量数据训练效果非常优秀的深度学习模型。为了能够在有限的时间内训练出效果符合预期的模型，并快速应用到产品中，分布式训练的是百度算法工程师提升训练速度最常见的手段之一。
 
 ### 常规训练方法
-- 关键词：数据并行、参数服务器、去中心化训练、同步训练、异步训练
-- 在深度学习模型的分布式训练中，[数据并行](https://static.googleusercontent.com/media/research.google.com/zh-CN//archive/large_deep_networks_nips2012.pdf)的方法最为常见。数据并行采用将整个训练数据集切分成若干不重叠的分片，分布在多个节点上进行联合训练。为了能够让多个节点能够共享训练的模型参数，分布式训练过程中通常会有一些模型参数同步的机制。[参数服务器](https://www.cs.cmu.edu/~muli/file/parameter_server_osdi14.pdf)即为一种常见的共享模型参数的方式，如图2。参数服务器作为中心化存储模型参数的方法，需要保持与各个训练节点保持频繁通信状态以保证模型的收敛效果。与参数服务器中心化管理模型参数的方法相对应，[去中心化的训练方式]()，通过将模型参数保存在每个训练节点，并通过巧妙的拓扑连接比如[Ring Allreduce](https://github.com/baidu-research/baidu-allreduce)实现模型参数的同步与共享。在分布式训练中，我们通常会为了确定性的训练结果，选择[同步训练](https://openreview.net/pdf?id=D1VDZ5kMAu5jEJ1zfEWL)方式，即各个训练节点的单步执行都会进行全局的参数同步，这样的训练方式与单机训练的算法完全一致。在一些训练数据决定模型效果的应用中，快速的[异步训练](https://static.googleusercontent.com/media/research.google.com/zh-CN//archive/large_deep_networks_nips2012.pdf)也是经常被采用的一种并行训练方式。异步训练通常在参数服务器训练中最为常见，这种情况下每个训练节点与参数服务器同步参数的步调不一致，这给模型训练的收敛性带来了很多挑战，而异步并行优化算法通常也是异步训练场景中经常被研究的重要问题。
+- 关键词：数据并行、去中心化同步、中心化同步、参数服务器、同步训练、异步训练
+- 在深度学习模型的分布式训练中，[数据并行](https://static.googleusercontent.com/media/research.google.com/zh-CN//archive/large_deep_networks_nips2012.pdf)的方法最为常见。数据并行采用将整个训练数据集切分成若干不重叠的分片分布到多个训练节点，每个训练节点的模型计算逻辑完全相同。为了能够让多个节点能够共享训练的模型参数，分布式训练过程中通常会有一些模型参数同步的机制。在数据并行方式下，飞桨当前提供两种主流的模型参数同步方法，去中心化同步方法和中心化同步方法。
+
+
+[参数服务器](https://www.cs.cmu.edu/~muli/file/parameter_server_osdi14.pdf)即为一种常见的共享模型参数的方式，如图2。参数服务器作为中心化存储模型参数的方法，需要保持与各个训练节点保持频繁通信状态以保证模型的收敛效果。与参数服务器中心化管理模型参数的方法相对应，[去中心化的训练方式]()，通过将模型参数保存在每个训练节点，并通过巧妙的拓扑连接比如[Ring Allreduce](https://github.com/baidu-research/baidu-allreduce)实现模型参数的同步与共享。在分布式训练中，我们通常会为了确定性的训练结果，选择[同步训练](https://openreview.net/pdf?id=D1VDZ5kMAu5jEJ1zfEWL)方式，即各个训练节点的单步执行都会进行全局的参数同步，这样的训练方式与单机训练的算法完全一致。在一些训练数据决定模型效果的应用中，快速的[异步训练](https://static.googleusercontent.com/media/research.google.com/zh-CN//archive/large_deep_networks_nips2012.pdf)也是经常被采用的一种并行训练方式。异步训练通常在参数服务器训练中最为常见，这种情况下每个训练节点与参数服务器同步参数的步调不一致，这给模型训练的收敛性带来了很多挑战，而异步并行优化算法通常也是异步训练场景中经常被研究的重要问题。
 
 <p align="center">
 <img align="center" src="data_parallel_ps_collective.png" height="320px" width="840px">
