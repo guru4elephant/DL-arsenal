@@ -44,4 +44,7 @@ optimizer.minimize(mnist_model.cost)
 
 # your training code on each GPU
 
+
+
+
 ```
