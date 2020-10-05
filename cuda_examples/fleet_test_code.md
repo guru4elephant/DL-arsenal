@@ -48,3 +48,31 @@ optimizer.minimize(mnist_model.cost)
 
 
 ```
+
+
+``` python
+import paddle
+from paddle.distributed import fleet
+import model
+
+fleet.init(is_collective=True)
+
+layer = LinearNet()
+loss_fn = paddle.nn.MSELoss()
+adam = paddle.optimizer.Adam(
+    learning_rate=0.001, parameters=layer.parameters())
+
+strategy = fleet.DistributedStrategy()
+adam = fleet.distributed_optimizer(adam, strategy=strategy)
+layer = fleet.distributed_model(layer)
+
+for step in range(20):
+    inputs = paddle.randn([10, 10], 'float32')
+    outputs = layer(inputs)
+    labels = paddle.randn([10, 1], 'float32')
+    loss = loss_fn(outputs, labels)
+    adam.step()
+    adam.clear_grad()
+```
+
+
